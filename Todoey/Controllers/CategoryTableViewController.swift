@@ -20,52 +20,52 @@ class CategoryTableViewController: UITableViewController {
         
         loadItems()
     }
-
     
     
-    
-    //MARK: - Define various propeties for the TableView
-    
+    //MARK: - TableView Delegate Methods
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return categoryArray.count
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        
         let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
         cell.textLabel?.text = categoryArray[indexPath.row].name
-        
         return cell
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        
         performSegue(withIdentifier: "goToItems", sender: self)
         tableView.deselectRow(at: indexPath, animated: true)
     }
     
+    
+    //MARK: - Segue Setup
+    
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        
         let destinationVC = segue.destination as! TodoListViewController
         if let indexPath = tableView.indexPathForSelectedRow {
             destinationVC.selectedCategory = categoryArray[indexPath.row]
         }
     }
     
+    
     //MARK: - CRUD Operations
     
-    
-    // Create operation
+    // CREATE operation
+    // Adds new Category object to the TableView
     func insertItem(categoryName: String) {
         let newCategory = Category(context: appContext)
         newCategory.name = categoryName
+        
         categoryArray.append(newCategory)
         
         updateItems()
     }
     
-    // Read operation
+    // READ operation
+    // Loads Category objects based on NSFetchRequest filter.
+    // Retrieves all items if no request is passed in as an argument.
     func loadItems(with request: NSFetchRequest<Category> = Category.fetchRequest()) {
         do {
             categoryArray = try appContext.fetch(request)
@@ -74,7 +74,8 @@ class CategoryTableViewController: UITableViewController {
         }
     }
     
-    // Update operation
+    // UPDATE operation
+    // Saves the current contents to the NSPersistentContainer and reloads the TableView.
     func updateItems() {
         do {
             try appContext.save()
@@ -85,15 +86,16 @@ class CategoryTableViewController: UITableViewController {
         self.tableView.reloadData()
     }
     
-    // Delete Operation
+    // DELETE Operation
+    // Removes an item from the NSPersistentContainer at the given position.
     func deleteItem(itemPosition: Int) {
         appContext.delete(categoryArray[itemPosition])
         categoryArray.remove(at: itemPosition)
         updateItems()
     }
     
-    //MARK: - Add Button
     
+    //MARK: - Add Button
     
     @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
         var textField = UITextField()

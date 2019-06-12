@@ -22,7 +22,6 @@ class TodoListViewController: UITableViewController {
     
     let appContext = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
-
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -30,7 +29,7 @@ class TodoListViewController: UITableViewController {
     }
     
     
-    //MARK: - Define various propeties for the TableView
+    //MARK: - TableView Delegate Methods
     
     // Determines number of rows to display in TableView
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -39,7 +38,6 @@ class TodoListViewController: UITableViewController {
     
     // Inflates a reusable TableView cell with a list item
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        
         let cell = tableView.dequeueReusableCell(withIdentifier: "TodoItemCell", for: indexPath)
         cell.textLabel?.text = itemArray[indexPath.row].title
         cell.accessoryType = itemArray[indexPath.row].isDone ? .checkmark : .none
@@ -49,67 +47,29 @@ class TodoListViewController: UITableViewController {
     
     // Toggle checkmark when a row is clicked
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        
         itemArray[indexPath.row].isDone = !itemArray[indexPath.row].isDone
         
-        
-//        appContext.delete(itemArray[indexPath.row])
-//        itemArray.remove(at: indexPath.row)
-        
-        saveItems()
+        updateItems()
         tableView.deselectRow(at: indexPath, animated: true)
     }
-
-    //MARK: - Add new list item
     
-    // Uses UIAlertController to attempt to add a new item to the list.
-    // Adds nothing if the user cancels the action or the textfield is empty
-    @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
+    //MARK: - CRUD Operations
+    
+    // CREATE Operation
+    // Adds new Item object to the TableView
+    func insertItem(itemName: String, done: Bool, parentName: Category) {
+        let newItem = Item(context: appContext)
+        newItem.title = itemName
+        newItem.isDone = done
+        newItem.parentCategory = parentName
         
-        var textField = UITextField()
+        itemArray.append(newItem)
         
-        let alert = UIAlertController(title: "Add New Todoey Item", message: "", preferredStyle: .alert)
-        
-        let addItemAction = UIAlertAction(title: "Add Item", style: .default, handler: { (action) in
-            if textField.text?.isEmpty ?? true {
-                print("TextField is empty")
-            } else {
-                
-                let newItem = Item(context: self.appContext)
-                newItem.title = textField.text!
-                newItem.isDone = false
-                newItem.parentCategory = self.selectedCategory
-                
-                self.itemArray.append(newItem)
-                
-                self.saveItems()
-            }
-        })
-        
-        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel) { (action) in
-            print("Action Cancelled")
-        }
-        
-        alert.addTextField { (alertTextField) in
-            alertTextField.placeholder = "Create new item"
-            textField = alertTextField
-        }
-        alert.addAction(addItemAction)
-        alert.addAction(cancelAction)
-        
-        present(alert, animated: true, completion: nil)
+        updateItems()
     }
     
-    func saveItems() {
-        do {
-           try appContext.save()
-        } catch {
-           print("Error saving context. \(error)")
-        }
-        
-        self.tableView.reloadData()
-    }
-    
+    // READ Operation
+    // Loads Item objects for the specified Category based on the NSFetchRequest and an optionalk NSPredicate filter.
     func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest(), predicate: NSPredicate? = nil) {
         
         let categoryPredicate = NSPredicate(format: "parentCategory.name MATCHES %@", selectedCategory!.name!)
@@ -127,9 +87,61 @@ class TodoListViewController: UITableViewController {
         }
     }
     
+    // UPDATE Operation
+    // Saves the current list contents to the NSPersistentContainer and reloads the TableView
+    func updateItems() {
+        do {
+            try appContext.save()
+        } catch {
+            print("Error saving context. \(error)")
+        }
+        
+        self.tableView.reloadData()
+    }
     
+    // DELETE Operation
+    // Removes an item from the NSPersistentContainer at the given position.
+    func deleteItem(itemPosition: Int) {
+        appContext.delete(itemArray[itemPosition])
+        itemArray.remove(at: itemPosition)
+        updateItems()
+    }
+    
+    
+    //MARK: - Add new list item
+    
+    // Uses UIAlertController to attempt to add a new item to the list.
+    // Adds nothing if the user cancels the action or the textfield is empty
+    @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
+        
+        var textField = UITextField()
+        
+        let alert = UIAlertController(title: "Add New Todoey Item", message: "", preferredStyle: .alert)
+        
+        let addItemAction = UIAlertAction(title: "Add Item", style: .default, handler: { (action) in
+            if textField.text?.isEmpty ?? true {
+                print("TextField is empty")
+            } else {
+                self.insertItem(itemName: textField.text!, done: false, parentName: self.selectedCategory!)
+            }
+        })
+        
+        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel) { (action) in
+            print("Action Cancelled")
+        }
+        
+        alert.addTextField { (alertTextField) in
+            alertTextField.placeholder = "Create new item"
+            textField = alertTextField
+        }
+        alert.addAction(addItemAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true, completion: nil)
+    }
 }
 
+//MARK: - SearchBar Delegate
 extension TodoListViewController: UISearchBarDelegate {
     
     // Queries the contents of the SearchBar and updates the TableView to
