@@ -7,10 +7,10 @@
 //
 
 import UIKit
-import CoreData
 import RealmSwift
+import ChameleonFramework
 
-class CategoryTableViewController: UITableViewController {
+class CategoryTableViewController: SwipeTableViewController {
     
     lazy var realm = try! Realm()
 
@@ -22,6 +22,8 @@ class CategoryTableViewController: UITableViewController {
         super.viewDidLoad()
         
         loadItems()
+        tableView.separatorStyle = .none
+        tableView.rowHeight = 60
     }
     
     
@@ -32,8 +34,12 @@ class CategoryTableViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
+        
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
         cell.textLabel?.text = categories?[indexPath.row].name ?? "No Categories Added Yet"
+        cell.backgroundColor = UIColor(hexString: categories?[indexPath.row].color ?? UIColor.brown.hexValue())
+        cell.textLabel?.textColor = ContrastColorOf(cell.backgroundColor ?? UIColor.black, returnFlat: true)
+        
         return cell
     }
     
@@ -76,6 +82,20 @@ class CategoryTableViewController: UITableViewController {
         tableView.reloadData()
     }
     
+    override func updateModel(at indexPath: IndexPath) {
+        if let categoryToDelete = self.categories?[indexPath.row] {
+            do {
+                try self.realm.write {
+                    super.updateModel(at: indexPath)
+                    self.realm.delete(categoryToDelete)
+                }
+                
+            } catch {
+                print("Error deleting category. \(error)")
+            }
+        }
+    }
+    
     
     //MARK: - Add Button
     
@@ -91,6 +111,7 @@ class CategoryTableViewController: UITableViewController {
             } else {
                 let newCategory = Category()
                 newCategory.name  = textField.text!
+                newCategory.color = UIColor.randomFlat.hexValue()
                 
                 self.saveItem(category: newCategory)
             }
@@ -112,3 +133,4 @@ class CategoryTableViewController: UITableViewController {
     }
 
 }
+

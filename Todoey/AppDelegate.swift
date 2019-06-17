@@ -8,6 +8,7 @@
 
 import UIKit
 import RealmSwift
+import ChameleonFramework
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -42,7 +43,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                 if (oldSchemaVersion < 1) {
                     migration.enumerateObjects(ofType: Item.className()) { (oldObject, newObject) in
                         newObject?["dateCreated"] = Date()
-                        
+                    }
+                    migration.enumerateObjects(ofType: Category.className()) { oldObject, newObject in
+                        newObject!["color"] = UIColor.randomFlat
                     }
                 }
         })
